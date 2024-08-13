@@ -13,7 +13,7 @@ import csv
 
 METRIC = None
 K = 0
-PERCENTAGE = 0.1
+PERCENTAGE = 0.05
 
 
 def save_to_csv(file_name, header, row_names, values):
@@ -32,8 +32,8 @@ class CellsDict(dict):
         super(CellsDict, self).__init__()
         self.df = df
         self.number_of_cells = self.df.shape[0]
-        spliced_df = pd.read_csv("counts_0_N.csv")
-        unspliced_df = pd.read_csv("counts_1.csv")
+        spliced_df = pd.read_csv("conbined_counts_0_271Genes.csv")
+        unspliced_df = pd.read_csv("conbined_counts_1_271Genes.csv")
         self.neighbors_df = pd.read_csv('neighbors.csv')
 
         self.genes = []
@@ -291,23 +291,22 @@ def check_if_df_work():
 def main():
     global METRIC, K, PERCENTAGE
     METRIC = "PCA"
-    k = [10, 20, 30, 50, 70]
+    k = [10, 20, 30, 50, 70, 100, 200]
     gammas = []
     gammas_lists = []
     # for each gene find its gamma and plot each cell in 2D regarding that gene expression
-    colors = {'T-cell_CD8A': "mediumblue",
-              'T-cell_CD3D': "blue",
-              'T-cell_CD3E': "lightblue",
-              'T-cell_CD4': "grey",
-              'Tumor_PGR': "hotpink",
-              'Tumor_EGFR': "pink",
-              'Tumor_ALDH1A3': "deeppink",
-              'Tumor_CD44': "maroon",
-              'Tumor_EPCAM': "lightpink",
-              'Tumor_CD24': "darksalmon",
-              'Un': "lightseagreen",
-              'B-cell_IGHG4': "orange",
-              'Fibroblast_SULF1': "yellow"
+    colors = {'UnKnown1': "mediumblue",
+              'Macrophage_HIF1A': "blue",
+              'Unknown2': "lightblue",
+              'Unknown3': "grey",
+              'Tumor_KRT19': "hotpink",
+              'T-cell_CD8A': "pink",
+              'Unknown4': "deeppink",
+              'Macrophage_LGMN': "maroon",
+              'Tumor_CD24': "lightpink",
+              'B-cell_IGHG4': "darksalmon",
+              'T-cell_CD8A': "lightseagreen",
+              'Fibroblast_COL3A1': "orange"
               }
     for i in k:
         global K
@@ -382,10 +381,10 @@ def main():
                 # num_points_percent = int(num_points * PERCENTAGE)
 
                 # Sort the points by distance from the top right point
-                sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** 0.5)
+                sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (PERCENTAGE/2))
 
                 # Sort the points by distance from the bottom left point
-                sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** 0.5)
+                sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (PERCENTAGE/2))
 
                 # color = ['red', 'blue', 'green']
                 # for c, p in enumerate([0.05, 0.075, 0.1]):
@@ -414,17 +413,18 @@ def main():
                 y_regression = slope * x_regression
 
                 # Plot the regression line
+                """
                 plt.plot(x_regression, y_regression, color=color, linewidth=3)
 
                 plt.scatter(x_values, y_values, color=color)
 
                 # Show the plot
-                plt.show()
-            return
+                #plt.show()
+            #return
 
-                # plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
-                # plt.clf()
-
+                plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
+                plt.clf()
+                """
 
         gammas_lists.append(gammas)
         gammas = []
