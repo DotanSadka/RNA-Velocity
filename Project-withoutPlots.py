@@ -104,17 +104,23 @@ class CellsDict(dict):
     def __init__(self, df):
         super(CellsDict, self).__init__()
         self.df = df
-        self.number_of_cells = self.df.shape[0]
+        self.number_of_cells = self.df.shape[0] #The shape[0] gives the number of rows, which corresponds to the number of cells
+        #----- spliced and unspliced matrices are read
         spliced_df = pd.read_csv("conbined_counts_0_271Genes.csv")
         unspliced_df = pd.read_csv("conbined_counts_1_271Genes.csv")
         if FIRST_RUN:
+            #no neighbors data is available yet
             self.neighbors_df = None
         else:
+            #file that contains information about the nearest neighbors of each cell 
             self.neighbors_df = pd.read_csv('neighbors.csv')
 
+        #empty lists to store genes info later
         self.genes = []
         self.genes_name = []
-
+        
+        #this initializes unspliced RNA expression data (self.U) by calling initiate_mRNA_expression
+        #with spliced/unspliced_df.
         self.S = self.initiate_mRNA_expression(spliced_df, True)
         self.U = self.initiate_mRNA_expression(unspliced_df)
 
@@ -126,9 +132,9 @@ class CellsDict(dict):
         :return: dict that holds all cells' names as keys and each cell initiate expression level of all its genes
                  as values, such that values are a dict of a gene name - key and it's expression val - value.
         """
-        cells_name = list(df["cell_name"])
-        genes_name = list(df.columns)[1:]
-        values = df.values
+        cells_name = list(df["cell_name"]) #These names will be used as keys in the expression_dict that is being constructed.
+        genes_name = list(df.columns)[1:] #These names will be used as keys in the expression_dict that is being constructed.
+        values = df.values #This array contains the expression values for each gene in each cell.
 
         expression_dict = {}
         for i in range(self.number_of_cells):
@@ -140,6 +146,7 @@ class CellsDict(dict):
 
         return expression_dict
 
+    # The init_genes method is responsible for initializing the genes within the CellsDict class.
     def init_genes(self, genes_name):
         self.genes_name = genes_name
         for name in genes_name:
@@ -163,6 +170,13 @@ class CellsDict(dict):
                 #     {cells_type[i]: Cell(cell_name, self.S[cell_name], self.U[cell_name], cells_type[i], METRIC)})
                 self.setdefault(cells_type[i], []).append(
                     Cell(cell_name, self.S[cell_name], self.U[cell_name], cells_type[i], METRIC))
+                    # Each Cell object is created using the following information:
+                    # cell_name: The name of the cell.
+                    # self.S[cell_name]: The spliced RNA data for this cell.
+                    # self.U[cell_name]: The unspliced RNA data for this cell.
+                    # cells_type[i]: The type or label of the cell.
+                    # METRIC: The current metric, which is "celltype" in this context.
+
         else:
             pc1 = self.df["pc1"]
             pc2 = self.df["pc2"]
