@@ -176,6 +176,13 @@ class CellsDict(dict):
                     # self.U[cell_name]: The unspliced RNA data for this cell.
                     # cells_type[i]: The type or label of the cell.
                     # METRIC: The current metric, which is "celltype" in this context.
+                    #For example, after the loop, CellsDict["T-cell"] would contain a 
+                    #list of all Cell objects that are of type "T-cell".
+                    #could look like this: 
+                    #"T-cell": [Cell(...), Cell(...)],
+                    #"B-cell": [Cell(...), Cell(...)],
+                    #בגדול יוצרים מפתחות לפי סוג התא למשל בי-סל
+                    # לכל מפתח הערך יהיה רשימה של תאים מהסוג הזה 
 
         else:
             pc1 = self.df["pc1"]
@@ -185,6 +192,14 @@ class CellsDict(dict):
                 cell_name = cells_name[i]
                 self.update({cells_name[i]: Cell(cells_name[i], self.S[cell_name], self.U[cell_name],
                                                  cells_type[i], METRIC, pca=np.array([pc1[i], pc2[i], pc3[i]]))})
+                # Updates the CellsDict dictionary by adding or updating an entry where the key is cells_name[i] (the name of the current cell).
+                # The value is a new Cell object that is created with the following parameters:
+                # cells_name[i]: The name of the cell.
+                # self.S[cell_name]: The spliced RNA expression values for this cell.
+                # self.U[cell_name]: The unspliced RNA expression values for this cell.
+                # cells_type[i]: The type of the cell.
+                # METRIC: The metric being used (which is not "celltype" in this case).
+                # pca=np.array([pc1[i], pc2[i], pc3[i]]): The PCA coordinates for this cell are passed as a NumPy array.    
 
     def save_distances_to_csv(self):
         cells_neighbors = {}
