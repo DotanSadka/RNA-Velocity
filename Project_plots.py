@@ -10,12 +10,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import csv
+import os
+
+print(os.getcwd())
 
 METRIC = None
 K = 0
 PERCENTAGE = 0.05
 
-
+dataFolder = 'C:/Users/dotan/OneDrive/מסמכים/RNA Velocity/data/'
+# testing print(dataFolder+"combined_counts_0_271Genes.csv")
 def save_to_csv(file_name, header, row_names, values):
     df = pd.DataFrame(values, columns=header, index=row_names)
 
@@ -32,9 +36,9 @@ class CellsDict(dict):
         super(CellsDict, self).__init__()
         self.df = df
         self.number_of_cells = self.df.shape[0]
-        spliced_df = pd.read_csv("conbined_counts_0_271Genes.csv")
-        unspliced_df = pd.read_csv("conbined_counts_1_271Genes.csv")
-        self.neighbors_df = pd.read_csv('neighbors.csv')
+        spliced_df = pd.read_csv(dataFolder+"combined_counts_0_271Genes.csv")
+        unspliced_df = pd.read_csv(dataFolder+"combined_counts_1_271Genes.csv")
+        #self.neighbors_df = pd.read_csv(dataFolder+'neighbors.csv')
 
         self.genes = []
 
@@ -291,7 +295,8 @@ def check_if_df_work():
 def main():
     global METRIC, K, PERCENTAGE
     METRIC = "PCA"
-    k = [10, 20, 30, 50, 70, 100, 200]
+    #k = [10, 20, 30, 50, 70, 100, 200]
+    k = 250
     gammas = []
     gammas_lists = []
     # for each gene find its gamma and plot each cell in 2D regarding that gene expression
@@ -308,37 +313,39 @@ def main():
               'T-cell_CD8A': "lightseagreen",
               'Fibroblast_COL3A1': "orange"
               }
-    for i in k:
-        global K
-        K = i
-        cells = CellsDict(pd.read_csv("cell_pc_df.csv"))
-        cells.set_dict()
+    #for i in k:
+    global K
+    K = k
+    cells = CellsDict(pd.read_csv(dataFolder+"cell_pc_df.csv"))
+    #cells = CellsDict(pd.read_csv("C:/Users/dotan/OneDrive/מסמכים/RNA Velocity/data/cell_pc_df.csv"))
 
-        # todo: if first time running code - run this to calculate neighbors of each cell
-        # cells.save_distances_to_csv()
-        # return
+    cells.set_dict()
 
-        # celltype
-        if METRIC == "celltype":
-            for cell_list in cells.values():
-                for cell in cell_list:
-                    cell.initialize_neighbors(cells)
-                    cell.substitute_S_by_knn()
-                    cell.substitute_U_by_knn()
-                    for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
-                        cells.genes[j].set_coordinates(cell.name, (x, y))
-        # pca
-        else:
-            for cell in cells.values():
+    # todo: if first time running code - run this to calculate neighbors of each cell
+    cells.save_distances_to_csv()
+    # return
 
-                # initialize all neighbors and calculate new s_knn and u_knn accordinglly
+    # celltype
+    if METRIC == "celltype":
+        for cell_list in cells.values():
+            for cell in cell_list:
                 cell.initialize_neighbors(cells)
                 cell.substitute_S_by_knn()
                 cell.substitute_U_by_knn()
-
-                # set the knn_normalization (the coordinates) of each gene for each cell
                 for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
-                    cells.genes[j].set_coordinates(cell, (x, y))
+                    cells.genes[j].set_coordinates(cell.name, (x, y))
+    # pca
+    else:
+        for cell in cells.values():
+
+            # initialize all neighbors and calculate new s_knn and u_knn accordinglly
+            cell.initialize_neighbors(cells)
+            cell.substitute_S_by_knn()
+            cell.substitute_U_by_knn()
+
+            # set the knn_normalization (the coordinates) of each gene for each cell
+            for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
+                cells.genes[j].set_coordinates(cell, (x, y))
 
         # the creation of the plot
 
@@ -347,84 +354,85 @@ def main():
         # Separate the x and y values from the points list
         for gene in cells.genes:
             color = ['red', 'blue', 'green']
-            for k, p in enumerate([0.05, 0.075, 0.1]):
-                points = gene.cells_coordinates.values()  # get all (x=s_knn, y=u_knn) of all cells
-                x_values = [point[0] for point in points]  # get all x values from points
-                y_values = [point[1] for point in points]  # get all y values from points
+            #for k, p in enumerate([0.05, 0.075, 0.1]):
+            p = 0.1 #fixed value
+            points = gene.cells_coordinates.values()  # get all (x=s_knn, y=u_knn) of all cells
+            x_values = [point[0] for point in points]  # get all x values from points
+            y_values = [point[1] for point in points]  # get all y values from points
 
-                # Create the scatter plot
-                plt.scatter(x_values, y_values, c=c)
-                plt.xlabel('Spliced')
-                plt.ylabel('Unspliced')
-                plt.title("{}\nK = {}".format(gene.name, K))
+            # Create the scatter plot
+            plt.scatter(x_values, y_values, c=c)
+            plt.xlabel('Spliced')
+            plt.ylabel('Unspliced')
+            plt.title("{}\nK = {}".format(gene.name, K))
 
-                # Create the legend
-                legend_handles = []
-                for cell_type, color in colors.items():
-                    legend_handles.append(
-                        plt.Line2D([0], [0], marker='o', color='w', label=cell_type, markerfacecolor=color, markersize=10))
+            # Create the legend
+            legend_handles = []
+            for cell_type, color in colors.items():
+                legend_handles.append(
+                    plt.Line2D([0], [0], marker='o', color='w', label=cell_type, markerfacecolor=color, markersize=10))
 
-                # Add legend to the plot
-                plt.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize="small")
+            # Add legend to the plot
+            plt.legend(handles=legend_handles, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize="small")
 
-                # Adjust plot to make space for the legend
-                plt.subplots_adjust(right=0.7)
+            # Adjust plot to make space for the legend
+            plt.subplots_adjust(right=0.7)
 
-                ## Find gamma and plot it ##
+            ## Find gamma and plot it ##
 
-                # Find the extreme points on the top right and bottom left
-                max_x, max_y = max(x_values), max(y_values)
-                min_x, min_y = 0, 0
+            # Find the extreme points on the top right and bottom left
+            max_x, max_y = max(x_values), max(y_values)
+            min_x, min_y = 0, 0
 
-                # Get the number of points for specific percentage of the total number of points
-                num_points = len(points)  # supposed to be 1311
-                # num_points_percent = int(num_points * PERCENTAGE)
+            # Get the number of points for specific percentage of the total number of points
+            num_points = len(points)  # supposed to be 1311
+            # num_points_percent = int(num_points * PERCENTAGE)
 
-                # Sort the points by distance from the top right point
-                sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (PERCENTAGE/2))
+            # Sort the points by distance from the top right point
+            sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (PERCENTAGE/2))
 
-                # Sort the points by distance from the bottom left point
-                sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (PERCENTAGE/2))
+            # Sort the points by distance from the bottom left point
+            sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (PERCENTAGE/2))
 
-                # color = ['red', 'blue', 'green']
-                # for c, p in enumerate([0.05, 0.075, 0.1]):
-                # Get the bottom 5% of the sorted points
-                num_points_percent = int(p * num_points)
-                top_points = sorted_top[:num_points_percent]
-                bottom_points = sorted_bottom[:num_points_percent]
+            # color = ['red', 'blue', 'green']
+            # for c, p in enumerate([0.05, 0.075, 0.1]):
+            # Get the bottom 5% of the sorted points
+            num_points_percent = int(p * num_points)
+            top_points = sorted_top[:num_points_percent]
+            bottom_points = sorted_bottom[:num_points_percent]
 
-                points = top_points + bottom_points
-                x_values = np.array([point[0] for point in points]).reshape(-1, 1)  # get all x values from points
-                y_values = np.array([point[1] for point in points])  # get all y values from points
+            points = top_points + bottom_points
+            x_values = np.array([point[0] for point in points]).reshape(-1, 1)  # get all x values from points
+            y_values = np.array([point[1] for point in points])  # get all y values from points
 
-                # calculate the slope for the gamma
-                reg = LinearRegression(fit_intercept=False)
-                reg.fit(x_values, y_values)
+            # calculate the slope for the gamma
+            reg = LinearRegression(fit_intercept=False)
+            reg.fit(x_values, y_values)
 
-                slope = reg.coef_
+            slope = reg.coef_
 
-                # todo: checked and coef_ equals the mathematical equation
-                # sum(x_values.T.dot(y_values)) / sum(x_values.T.dot(x_values)[0])
+            # todo: checked and coef_ equals the mathematical equation
+            # sum(x_values.T.dot(y_values)) / sum(x_values.T.dot(x_values)[0])
 
-                # Create an array of x-values for the regression line
-                x_regression = np.linspace(0, np.max(x_values), len(points))
+            # Create an array of x-values for the regression line
+            x_regression = np.linspace(0, np.max(x_values), len(points))
 
-                # Calculate the corresponding y-values for the regression line starting from the origin
-                y_regression = slope * x_regression
+            # Calculate the corresponding y-values for the regression line starting from the origin
+            y_regression = slope * x_regression
 
-                # Plot the regression line
-                """
-                plt.plot(x_regression, y_regression, color=color, linewidth=3)
+            # Plot the regression line
+            """
+            plt.plot(x_regression, y_regression, color=color, linewidth=3)
 
-                plt.scatter(x_values, y_values, color=color)
+            plt.scatter(x_values, y_values, color=color)
 
-                # Show the plot
-                #plt.show()
+            # Show the plot
+            #plt.show()
             #return
 
-                plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
-                plt.clf()
-                """
+            plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
+            plt.clf()
+            """
 
         gammas_lists.append(gammas)
         gammas = []

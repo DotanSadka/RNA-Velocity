@@ -106,14 +106,14 @@ class CellsDict(dict):
         self.df = df
         self.number_of_cells = self.df.shape[0] #The shape[0] gives the number of rows, which corresponds to the number of cells
         #----- spliced and unspliced matrices are read
-        spliced_df = pd.read_csv("conbined_counts_0_271Genes.csv")
-        unspliced_df = pd.read_csv("conbined_counts_1_271Genes.csv")
+        spliced_df = pd.read_csv("data/combined_counts_0_271Genes.csv")
+        unspliced_df = pd.read_csv("data/combined_counts_1_271Genes.csv")
         if FIRST_RUN:
             #no neighbors data is available yet
             self.neighbors_df = None
         else:
             #file that contains information about the nearest neighbors of each cell 
-            self.neighbors_df = pd.read_csv('neighbors.csv')
+            self.neighbors_df = pd.read_csv('data/neighbors.csv')
 
         #empty lists to store genes info later
         self.genes = []
