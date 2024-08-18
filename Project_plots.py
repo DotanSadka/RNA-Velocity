@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 import csv
 import os
+import time
+
 
 print(os.getcwd())
 
@@ -23,8 +25,8 @@ dataFolder = 'C:/Users/dotan/OneDrive/מסמכים/RNA Velocity/data/'
 def save_to_csv(file_name, header, row_names, values):
     df = pd.DataFrame(values, columns=header, index=row_names)
 
-    # Save the data frame to CSV
-    df.to_csv(file_name, index=True)
+    # Save the data frame to CSV    
+    df.to_csv((dataFolder+file_name), index=True)
 
 
 class CellsDict(dict):
@@ -38,7 +40,7 @@ class CellsDict(dict):
         self.number_of_cells = self.df.shape[0]
         spliced_df = pd.read_csv(dataFolder+"combined_counts_0_271Genes.csv")
         unspliced_df = pd.read_csv(dataFolder+"combined_counts_1_271Genes.csv")
-        #self.neighbors_df = pd.read_csv(dataFolder+'neighbors.csv')
+        self.neighbors_df = pd.read_csv(dataFolder+'neighbors.csv')
 
         self.genes = []
 
@@ -113,7 +115,7 @@ class CellsDict(dict):
             cells_neighbors.update({current_cell.name: sorted_cells_names})
 
         df = pd.DataFrame(cells_neighbors)
-        df.to_csv('neighbors.csv', index=False)
+        #df.to_csv('neighbors.csv', index=False)
 
 
 class Gene:
@@ -274,6 +276,7 @@ class Cell:
         """
         global K
         names = list(cells.neighbors_df[str(self.name)].head(K))
+        ###print("cells.neighbors_df works")
         neighbors = []
         for i in range(K):
             neighbors.append(cells[names[i]])
@@ -293,10 +296,11 @@ def check_if_df_work():
 
 
 def main():
+    start_time=time.time()
     global METRIC, K, PERCENTAGE
     METRIC = "PCA"
     #k = [10, 20, 30, 50, 70, 100, 200]
-    k = 250
+    k = 400
     gammas = []
     gammas_lists = []
     # for each gene find its gamma and plot each cell in 2D regarding that gene expression
@@ -311,7 +315,7 @@ def main():
               'Tumor_CD24': "lightpink",
               'B-cell_IGHG4': "darksalmon",
               'T-cell_CD8A': "lightseagreen",
-              'Fibroblast_COL3A1': "orange"
+              'Fibroblast_COL3A1': "green"
               }
     #for i in k:
     global K
@@ -320,9 +324,12 @@ def main():
     #cells = CellsDict(pd.read_csv("C:/Users/dotan/OneDrive/מסמכים/RNA Velocity/data/cell_pc_df.csv"))
 
     cells.set_dict()
-
+    cells_set_time = time.time()
     # todo: if first time running code - run this to calculate neighbors of each cell
     cells.save_distances_to_csv()
+    calculate_neighbors_time = time.time()
+    elapsed_time = calculate_neighbors_time - cells_set_time
+    print(f"it took: {elapsed_time:.2f} seconds to calculate_neighbors_time")
     # return
 
     # celltype
@@ -333,7 +340,7 @@ def main():
                 cell.substitute_S_by_knn()
                 cell.substitute_U_by_knn()
                 for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
-                    cells.genes[j].set_coordinates(cell.name, (x, y))
+                    cells.genes[j].set_coordinates(cell.name, (x, y))                   
     # pca
     else:
         for cell in cells.values():
@@ -347,9 +354,16 @@ def main():
             for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
                 cells.genes[j].set_coordinates(cell, (x, y))
 
+        finish_pca_time = time.time() 
         # the creation of the plot
 
         c = [colors[cell.cell_type] for cell in cells.values()]
+
+        # Directory to save plots
+        output_dir = f'C:/Users/dotan/OneDrive/מסמכים/RNA Velocity/data/gamma_plots/k={K}'
+        
+        # Create the directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
 
         # Separate the x and y values from the points list
         for gene in cells.genes:
@@ -389,10 +403,10 @@ def main():
             # num_points_percent = int(num_points * PERCENTAGE)
 
             # Sort the points by distance from the top right point
-            sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (PERCENTAGE/2))
+            sorted_top = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (p/2))
 
             # Sort the points by distance from the bottom left point
-            sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (PERCENTAGE/2))
+            sorted_bottom = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (p/2))
 
             # color = ['red', 'blue', 'green']
             # for c, p in enumerate([0.05, 0.075, 0.1]):
@@ -421,8 +435,8 @@ def main():
             y_regression = slope * x_regression
 
             # Plot the regression line
-            """
-            plt.plot(x_regression, y_regression, color=color, linewidth=3)
+            
+            plt.plot(x_regression, y_regression, color = 'red', linewidth=3)
 
             plt.scatter(x_values, y_values, color=color)
 
@@ -430,20 +444,39 @@ def main():
             #plt.show()
             #return
 
-            plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
+            plt.savefig(os.path.join(output_dir, f'{gene.name}.png'))
+            #plt.savefig(f'gamma_plots/k={K}/{gene.name}.png')
             plt.clf()
-            """
+            
 
         gammas_lists.append(gammas)
         gammas = []
+        finish_plot_time = time.time() 
+        elapsed_time = finish_plot_time - finish_pca_time
+        print(f"it took: {elapsed_time:.2f} seconds to calculate_neighbors_time")
 
     """
     Create csv file for each quantile
     """
-    genes = [g.name for g in cells.genes]
+    #genes = [g.name for g in cells.genes]
 
     # check if gammas slightly change
-    save_to_csv(f'quantiles_{PERCENTAGE}.csv', header=genes, row_names=k, values=gammas_lists)
+    #save_to_csv(f'quantiles_{PERCENTAGE}.csv', header=genes, row_names=k, values=gammas_lists)
+    finish_main_time = time.time() 
+
+    #running times:
+    elapsed_time = cells_set_time-start_time
+    print(f"To cells_set_time time: {elapsed_time:.2f} seconds")
+    elapsed_time = calculate_neighbors_time - cells_set_time
+    print(f"To calculate_neighbors_time time: {elapsed_time:.2f} seconds")
+    elapsed_time = finish_pca_time -calculate_neighbors_time
+    print(f"To finish_pca_time time: {elapsed_time:.2f} seconds")
+    elapsed_time = finish_plot_time - finish_pca_time
+    print(f"To finish_plot_time time: {elapsed_time:.2f} seconds")
+    elapsed_time = finish_main_time - finish_plot_time
+    print(f"To finish_main_time time: {elapsed_time:.2f} seconds")
+
+
 
 
 if __name__ == "__main__":
