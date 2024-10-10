@@ -3,6 +3,7 @@
 # calculate all gammas for each gene using knn pooling (gamma = u/s) (seems like gammas are calculated from s0 and u0)
 # calculate v for each gene according ds/dt = v = u(t) - gamma*s(t)
 # for each cell we calculate the new s(t) and then get the trajectory
+#test
 
 import random
 import pandas as pd

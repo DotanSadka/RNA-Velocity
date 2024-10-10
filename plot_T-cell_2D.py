@@ -6,7 +6,7 @@ FILTER = 0
 T = 3
 IS_FILTER = True
 
-# 1
+
 def plot_points_arrows(points_start, points_end, pc1, pc2):
 
     salmon_color = '#FFBFA7'  # CD8A

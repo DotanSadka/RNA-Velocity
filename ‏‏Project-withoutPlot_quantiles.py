@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 
 # HYPER PARAMETERS
 
-FIRST_RUN = True
+FIRST_RUN = False
 METRIC = None
 FILTER = True
 K = 0
@@ -104,23 +104,17 @@ class CellsDict(dict):
     def __init__(self, df):
         super(CellsDict, self).__init__()
         self.df = df
-        self.number_of_cells = self.df.shape[0] #The shape[0] gives the number of rows, which corresponds to the number of cells
-        #----- spliced and unspliced matrices are read
-        spliced_df = pd.read_csv("data/combined_counts_0_271Genes.csv")
-        unspliced_df = pd.read_csv("data/combined_counts_1_271Genes.csv")
+        self.number_of_cells = self.df.shape[0]
+        spliced_df = pd.read_csv("conbined_counts_0_271Genes.csv")
+        unspliced_df = pd.read_csv("conbined_counts_1_271Genes.csv")
         if FIRST_RUN:
-            #no neighbors data is available yet
             self.neighbors_df = None
         else:
-            #file that contains information about the nearest neighbors of each cell 
-            self.neighbors_df = pd.read_csv('data/neighbors.csv')
+            self.neighbors_df = pd.read_csv('neighbors.csv')
 
-        #empty lists to store genes info later
         self.genes = []
         self.genes_name = []
-        
-        #this initializes unspliced RNA expression data (self.U) by calling initiate_mRNA_expression
-        #with spliced/unspliced_df.
+
         self.S = self.initiate_mRNA_expression(spliced_df, True)
         self.U = self.initiate_mRNA_expression(unspliced_df)
 
@@ -132,9 +126,9 @@ class CellsDict(dict):
         :return: dict that holds all cells' names as keys and each cell initiate expression level of all its genes
                  as values, such that values are a dict of a gene name - key and it's expression val - value.
         """
-        cells_name = list(df["cell_name"]) #These names will be used as keys in the expression_dict that is being constructed.
-        genes_name = list(df.columns)[1:] #These names will be used as keys in the expression_dict that is being constructed.
-        values = df.values #This array contains the expression values for each gene in each cell.
+        cells_name = list(df["cell_name"])
+        genes_name = list(df.columns)[1:]
+        values = df.values
 
         expression_dict = {}
         for i in range(self.number_of_cells):
@@ -146,7 +140,6 @@ class CellsDict(dict):
 
         return expression_dict
 
-    # The init_genes method is responsible for initializing the genes within the CellsDict class.
     def init_genes(self, genes_name):
         self.genes_name = genes_name
         for name in genes_name:
@@ -170,20 +163,6 @@ class CellsDict(dict):
                 #     {cells_type[i]: Cell(cell_name, self.S[cell_name], self.U[cell_name], cells_type[i], METRIC)})
                 self.setdefault(cells_type[i], []).append(
                     Cell(cell_name, self.S[cell_name], self.U[cell_name], cells_type[i], METRIC))
-                    # Each Cell object is created using the following information:
-                    # cell_name: The name of the cell.
-                    # self.S[cell_name]: The spliced RNA data for this cell.
-                    # self.U[cell_name]: The unspliced RNA data for this cell.
-                    # cells_type[i]: The type or label of the cell.
-                    # METRIC: The current metric, which is "celltype" in this context.
-                    #For example, after the loop, CellsDict["T-cell"] would contain a 
-                    #list of all Cell objects that are of type "T-cell".
-                    #could look like this: 
-                    #"T-cell": [Cell(...), Cell(...)],
-                    #"B-cell": [Cell(...), Cell(...)],
-                    #בגדול יוצרים מפתחות לפי סוג התא למשל בי-סל
-                    # לכל מפתח הערך יהיה רשימה של תאים מהסוג הזה 
-
         else:
             pc1 = self.df["pc1"]
             pc2 = self.df["pc2"]
@@ -192,14 +171,6 @@ class CellsDict(dict):
                 cell_name = cells_name[i]
                 self.update({cells_name[i]: Cell(cells_name[i], self.S[cell_name], self.U[cell_name],
                                                  cells_type[i], METRIC, pca=np.array([pc1[i], pc2[i], pc3[i]]))})
-                # Updates the CellsDict dictionary by adding or updating an entry where the key is cells_name[i] (the name of the current cell).
-                # The value is a new Cell object that is created with the following parameters:
-                # cells_name[i]: The name of the cell.
-                # self.S[cell_name]: The spliced RNA expression values for this cell.
-                # self.U[cell_name]: The unspliced RNA expression values for this cell.
-                # cells_type[i]: The type of the cell.
-                # METRIC: The metric being used (which is not "celltype" in this case).
-                # pca=np.array([pc1[i], pc2[i], pc3[i]]): The PCA coordinates for this cell are passed as a NumPy array.    
 
     def save_distances_to_csv(self):
         cells_neighbors = {}
@@ -249,13 +220,13 @@ class CellsDict(dict):
             num_points_percent = int(num_points * PERCENTAGE)
 
             # Sort the points by distance from the top right point
-            sorted_points = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** (PERCENTAGE/2))
+            sorted_points = sorted(points, key=lambda point: ((point[0] - max_x) ** 2 + (point[1] - max_y) ** 2) ** 0.5)
 
             # Get the top percentage of the sorted points
             top_points = sorted_points[:num_points_percent]
 
             # Sort the points by distance from the bottom left point
-            sorted_points = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** (PERCENTAGE/2))
+            sorted_points = sorted(points, key=lambda point: ((point[0] - min_x) ** 2 + (point[1] - min_y) ** 2) ** 0.5)
 
             # Get the bottom 5% of the sorted points 
 
@@ -489,33 +460,64 @@ def check_if_df_work():
 
 
 def main():
-    global METRIC, K, PERCENTAGE, t
+    global METRIC, PERCENTAGE, t
     METRIC = "PCA"
-    K = 10
-    cells = CellsDict(pd.read_csv("cell_pc_df.csv"))
-    cells.set_dict()
+    #k = [10, 20, 30, 50, 70, 100, 200, 500, 1000]
+    #k = [500, 1000]
+    k = [250,300,350, 400, 450]
+    gammas_lists = []
+    for i in k:
+        global K
+        K = i
+        cells = CellsDict(pd.read_csv("cell_pc_df.csv"))
+        cells.set_dict()
 
-    # todo: if first time running code - run this to calculate neighbors of each cell
-    if FIRST_RUN:
-        cells.save_distances_to_csv()
-    # return
+        # todo: if first time running code - run this to calculate neighbors of each cell
+        if FIRST_RUN:
+            cells.save_distances_to_csv()
+        # return
 
-    for cell in cells.values():
-        # initialize all neighbors and calculate new s_knn and u_knn accordingly
-        cell.initialize_neighbors(cells)
-        cell.substitute_S_by_knn()
-        cell.substitute_U_by_knn()
+        for cell in cells.values():
+            # initialize all neighbors and calculate new s_knn and u_knn accordingly
+            cell.initialize_neighbors(cells)
+            cell.substitute_S_by_knn()
+            cell.substitute_U_by_knn()
 
-        # set the knn_normalization (the coordinates) of each gene for each cell
-        for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
-            cells.genes[j].set_coordinates(cell, (x, y))
+            # set the knn_normalization (the coordinates) of each gene for each cell
+            for j, (x, y) in enumerate(zip(cell.s_knn.values(), cell.u_knn.values())):
+                cells.genes[j].set_coordinates(cell, (x, y))
 
+        """
+        Calculate gamma for all genes and set gammas for each cell in order to calculate velocity and s(t)
+        """
+        gammas = cells.calculate_gammas()
+        # precision_and_recall(cells)  # todo: used for hyperparameter fine-tuning
+        gammas = np.array(gammas)
+        gammas_lists.append(gammas)
+
+    genes = [g.name for g in cells.genes]
+    save_to_csv(f'quantiles_250-450_{PERCENTAGE}_biggerk.csv', header=genes, row_names=k, values=gammas_lists)
     """
-    Calculate gamma for all genes and set gammas for each cell in order to calculate velocity and s(t)
+    # x-axis: k value y-axis: gamma value
+    k = [10, 20, 30, 50, 70, 100, 200, 500, 1000]
+    #k=[500, 1000]
+    gamma_y_value = []
+    for i in range(271):
+        for list in gammas_lists:
+            gamma_y_value.append(list[i])
+    
+        plt.subplots_adjust()
+        plt.plot(k, gamma_y_value, 'o')
+        plt.plot(k, gamma_y_value, '-')
+        plt.xlabel('K values')
+        plt.ylabel('Gamma values')
+        plt.title("K influence gamma values in gene: {}\n".format(genes[i]))
+        #plt.savefig(f'k_plot/quantiles_{PERCENTAGE}/{genes[i]}.png')
+        plt.savefig(f'k_plot_bigger/quantiles_{PERCENTAGE}/{genes[i]}.png')
+        plt.clf()
+        gamma_y_value = []
     """
-    gammas = cells.calculate_gammas()
-    # precision_and_recall(cells)  # todo: used for hyperparameter fine-tuning
-    gammas = np.array(gammas)
+    """   
     # First row
     global df_normal_st, df_filtered_st
     df_normal_st = pd.DataFrame({'cells_name': cells.genes_name})
@@ -578,7 +580,7 @@ def calculate_mean_st_sum(path):
 
 def create_gene_expression_csv(cell_and_st):
     """
-    Function creates the csv file with the s(t) calculation results.
+    #Function creates the csv file with the s(t) calculation results.
     """
     cell_name = cell_and_st[0]
     st = cell_and_st[1]
@@ -590,16 +592,16 @@ def create_gene_expression_csv(cell_and_st):
     else:
         df_normal_st = pd.concat([df_normal_st, pd.DataFrame({cell_name: st})], axis=1)
 
-
+"""
 if __name__ == "__main__":
     # Run s(t) calculation
     main()
-
+    """
     # used to check which "t" is best - got convergence around t=3
     for i in [1, 2, 3, 4]:
         t = i
         path = f"FILTERATION-0.05/csv_for_plots/t={t}.csv"
         get_top_st_sum()
         calculate_mean_st_sum(path)
-        plot_precision_recall()
-
+        #plot_precision_recall()
+    """
